@@ -173,10 +173,21 @@
             animation: progress 5s linear forwards;
         }
         .last-update {
-            color: #aaa;
-            font-size: 0.9em;
-            margin-bottom: 10px;
+            color: #7b1fa2;
+            font-size: 1em;
+            margin-bottom: 15px;
             text-align: right;
+            font-weight: bold;
+            text-shadow: 0 0 5px rgba(123, 31, 162, 0.5);
+            padding: 5px 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 5px;
+            display: inline-block;
+            float: right;
+        }
+        .file-content {
+            clear: both;
+            padding-top: 10px;
         }
     </style>
 </head>
@@ -214,20 +225,21 @@
         function loadTextFile() {
             fetch('txt.txt')
                 .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Файл не найден');
-                    }
-                    const lastModified = new Date(response.headers.get('Last-Modified') || new Date();
+                    if (!response.ok) throw new Error('Файл не найден');
+                    const lastModified = new Date(response.headers.get('Last-Modified') || new Date());
                     return response.text().then(text => {
                         document.getElementById('contentDisplay').innerHTML = `
                             <div class="last-update">Последнее обновление: ${lastModified.toLocaleString()}</div>
-                            ${text}
+                            <div class="file-content">${text}</div>
                         `;
                     });
                 })
                 .catch(error => {
-                    console.error('Ошибка загрузки файла:', error);
-                    document.getElementById('contentDisplay').textContent = 'Ошибка загрузки содержимого. Убедитесь, что файл txt.txt существует в той же папке.';
+                    console.error('Ошибка:', error);
+                    document.getElementById('contentDisplay').innerHTML = `
+                        <div class="last-update" style="color:red">Файл не загружен</div>
+                        <div class="file-content">${error.message}</div>
+                    `;
                 });
         }
 
