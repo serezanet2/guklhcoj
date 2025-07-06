@@ -218,6 +218,12 @@
         .text-block {
             margin-bottom: 15px;
         }
+        .media-caption {
+            text-align: center;
+            font-style: italic;
+            margin-top: 5px;
+            color: #aaa;
+        }
     </style>
 </head>
 <body>
@@ -251,46 +257,70 @@
         let keyMenuVisible = false;
 
         function parseContent(text) {
-            // Разделяем текст на части перед медиа и после
             const parts = [];
-            let lastIndex = 0;
+            let remainingText = text;
             
-            // Обработка YouTube ссылок
-            const youtubeRegex = /(https?:\/\/(?:www\.)?youtu(?:be\.com\/watch\?v=|\.be\/)([\w-]+)(?:\S+)?)/g;
-            let youtubeMatch;
-            while ((youtubeMatch = youtubeRegex.exec(text)) !== null) {
-                const beforeText = text.substring(lastIndex, youtubeMatch.index);
-                if (beforeText) parts.push({type: 'text', content: beforeText});
+            // Обрабатываем медиа-контент по порядку
+            while (true) {
+                // Ищем первое вхождение любого медиа
+                const imageIndex = remainingText.search(/icon([1-9]|10)/);
+                const youtubeIndex = remainingText.search(/https?:\/\/(?:www\.)?youtu(?:be\.com\/watch\?v=|\.be\/)([\w-]+)/);
                 
-                parts.push({
-                    type: 'youtube',
-                    id: youtubeMatch[2],
-                    url: youtubeMatch[0]
-                });
+                // Определяем какой медиа-контент встречается раньше
+                let nextMediaType = null;
+                let nextMediaIndex = Infinity;
                 
-                lastIndex = youtubeRegex.lastIndex;
+                if (imageIndex >= 0 && imageIndex < nextMediaIndex) {
+                    nextMediaType = 'image';
+                    nextMediaIndex = imageIndex;
+                }
+                
+                if (youtubeIndex >= 0 && youtubeIndex < nextMediaIndex) {
+                    nextMediaType = 'youtube';
+                    nextMediaIndex = youtubeIndex;
+                }
+                
+                // Если медиа не найдено - добавляем оставшийся текст и выходим
+                if (nextMediaType === null) {
+                    if (remainingText.trim().length > 0) {
+                        parts.push({
+                            type: 'text',
+                            content: remainingText
+                        });
+                    }
+                    break;
+                }
+                
+                // Добавляем текст перед медиа
+                if (nextMediaIndex > 0) {
+                    const beforeText = remainingText.substring(0, nextMediaIndex);
+                    parts.push({
+                        type: 'text',
+                        content: beforeText
+                    });
+                }
+                
+                // Обрабатываем медиа-контент
+                if (nextMediaType === 'image') {
+                    const match = remainingText.match(/icon([1-9]|10)/);
+                    const num = match[0].replace('icon', '');
+                    parts.push({
+                        type: 'image',
+                        num: num,
+                        filename: `icon${num}.png`
+                    });
+                    remainingText = remainingText.substring(match.index + match[0].length);
+                } 
+                else if (nextMediaType === 'youtube') {
+                    const match = remainingText.match(/(https?:\/\/(?:www\.)?youtu(?:be\.com\/watch\?v=|\.be\/)([\w-]+)/);
+                    parts.push({
+                        type: 'youtube',
+                        id: match[2],
+                        url: match[0]
+                    });
+                    remainingText = remainingText.substring(match.index + match[0].length);
+                }
             }
-            
-            // Обработка изображений (icon1-icon10)
-            const imageRegex = /icon([1-9]|10)/g;
-            let imageMatch;
-            while ((imageMatch = imageRegex.exec(text)) !== null) {
-                const beforeText = text.substring(lastIndex, imageMatch.index);
-                if (beforeText) parts.push({type: 'text', content: beforeText});
-                
-                const num = imageMatch[0].replace('icon', '');
-                parts.push({
-                    type: 'image',
-                    num: num,
-                    filename: `icon${num}.png`
-                });
-                
-                lastIndex = imageRegex.lastIndex;
-            }
-            
-            // Добавляем оставшийся текст
-            const remainingText = text.substring(lastIndex);
-            if (remainingText) parts.push({type: 'text', content: remainingText});
             
             return parts;
         }
@@ -300,12 +330,15 @@
             
             parts.forEach(part => {
                 if (part.type === 'text') {
-                    html += `<div class="text-block">${part.content}</div>`;
+                    if (part.content.trim().length > 0) {
+                        html += `<div class="text-block">${part.content}</div>`;
+                    }
                 } 
                 else if (part.type === 'image') {
                     html += `
                         <div class="media-container">
                             <img src="${part.filename}" class="content-image" alt="Изображение ${part.num}">
+                            <div class="media-caption">Изображение ${part.num}</div>
                         </div>
                     `;
                 }
@@ -315,6 +348,7 @@
                             <div class="youtube-embed">
                                 <iframe src="https://www.youtube.com/embed/${part.id}" allowfullscreen></iframe>
                             </div>
+                            <div class="media-caption">YouTube видео</div>
                         </div>
                     `;
                 }
@@ -349,19 +383,17 @@
                 });
         }
 
+        // Остальной код остается без изменений
         window.addEventListener('DOMContentLoaded', loadTextFile);
-
         document.getElementById('getKeyBtn').addEventListener('click', function(e) {
             e.stopPropagation();
             toggleKeyMenu();
         });
-
         document.addEventListener('click', function() {
             if (keyMenuVisible) {
                 hideKeyMenu();
             }
         });
-
         document.getElementById('keyMenu').addEventListener('click', function(e) {
             e.stopPropagation();
         });
