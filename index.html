@@ -181,17 +181,10 @@
             padding: 5px 0;
             display: block;
         }
-        .content-block {
-            margin-bottom: 20px;
-        }
-        .media-container {
-            width: 100%;
-            max-width: 640px;
-            margin: 15px 0;
-        }
         .content-image {
-            width: 100%;
+            max-width: 100%;
             height: auto;
+            margin: 15px 0;
             border-radius: 8px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         }
@@ -202,6 +195,7 @@
             overflow: hidden;
             border-radius: 8px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            margin: 15px 0;
         }
         .youtube-embed iframe {
             position: absolute;
@@ -234,7 +228,7 @@
         <h1 class="app-title">GitUnlock</h1>
         
         <div class="initial-content" id="contentDisplay">
-            <!-- Контент будет загружен здесь -->
+            <!-- Содержимое будет загружено здесь -->
         </div>
     </div>
 
@@ -244,13 +238,13 @@
         let keyMenuVisible = false;
 
         function processContent(text) {
-            const parts = [];
+            let html = '';
             let remainingText = text;
             
-            // Обрабатываем медиа-вставки по порядку
+            // Обрабатываем медиа-вставки
             while (true) {
                 const imageMatch = remainingText.match(/icon([1-9]|10)/);
-                const youtubeMatch = remainingText.match(/(https?:\/\/(?:www\.)?youtu(?:be\.com\/watch\?v=|\.be\/)([\w-]+))/);
+                const youtubeMatch = remainingText.match(/(https?:\/\/(?:www\.)?youtu(?:be\.com\/watch\?v=|\.be\/)([\w-]+)(\S*))/);
                 
                 // Определяем какое медиа встречается раньше
                 let nextMedia = null;
@@ -271,68 +265,34 @@
                 // Если медиа не найдено - добавляем оставшийся текст
                 if (!nextMedia) {
                     if (remainingText.trim().length > 0) {
-                        parts.push({
-                            type: 'text',
-                            content: remainingText
-                        });
+                        html += `<div>${remainingText}</div>`;
                     }
                     break;
                 }
                 
                 // Добавляем текст перед медиа
                 if (nextMedia.match.index > 0) {
-                    parts.push({
-                        type: 'text',
-                        content: remainingText.substring(0, nextMedia.match.index)
-                    });
+                    const textBefore = remainingText.substring(0, nextMedia.match.index).trim();
+                    if (textBefore) {
+                        html += `<div>${textBefore}</div>`;
+                    }
                 }
                 
                 // Добавляем медиа
                 if (nextMedia.type === 'image') {
                     const num = nextMedia.match[0].replace('icon', '');
-                    parts.push({
-                        type: 'image',
-                        filename: `icon${num}.png`
-                    });
+                    html += `<img src="icon${num}.png" class="content-image">`;
                 } else {
-                    parts.push({
-                        type: 'youtube',
-                        id: nextMedia.match[2]
-                    });
+                    const videoId = nextMedia.match[2];
+                    html += `
+                        <div class="youtube-embed">
+                            <iframe src="https://www.youtube.com/embed/${videoId}" allowfullscreen></iframe>
+                        </div>
+                    `;
                 }
                 
                 remainingText = remainingText.substring(nextMedia.match.index + nextMedia.length);
             }
-            
-            return parts;
-        }
-
-        function renderContent(parts) {
-            let html = '';
-            
-            parts.forEach(part => {
-                if (part.type === 'text') {
-                    if (part.content.trim().length > 0) {
-                        html += `<div class="content-block">${part.content}</div>`;
-                    }
-                } 
-                else if (part.type === 'image') {
-                    html += `
-                        <div class="media-container">
-                            <img src="${part.filename}" class="content-image">
-                        </div>
-                    `;
-                }
-                else if (part.type === 'youtube') {
-                    html += `
-                        <div class="media-container">
-                            <div class="youtube-embed">
-                                <iframe src="https://www.youtube.com/embed/${part.id}" allowfullscreen></iframe>
-                            </div>
-                        </div>
-                    `;
-                }
-            });
             
             return html;
         }
@@ -345,8 +305,7 @@
                     return response.text().then(text => {
                         const options = { year: 'numeric', month: 'long', day: 'numeric' };
                         const formattedDate = lastModified.toLocaleDateString('ru-RU', options);
-                        const contentParts = processContent(text);
-                        const contentHtml = renderContent(contentParts);
+                        const contentHtml = processContent(text);
                         
                         document.getElementById('contentDisplay').innerHTML = `
                             <div class="last-update">Последнее обновление: ${formattedDate}</div>
@@ -358,7 +317,7 @@
                     console.error('Ошибка:', error);
                     document.getElementById('contentDisplay').innerHTML = `
                         <div class="last-update" style="color:red">Файл не загружен</div>
-                        <div class="content-block">${error.message}</div>
+                        <div>${error.message}</div>
                     `;
                 });
         }
