@@ -3,51 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Мой сайт с авторизацией</title>
-    <link rel="stylesheet" href="style.css">
-    <!-- Подключаем Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+    <title>Чтение файла txt.txt</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        #content {
+            white-space: pre-wrap;
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        #last-update {
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Добро пожаловать!</h1>
-        
-        <div id="auth-container">
-            <div id="signin-form" class="auth-form">
-                <h2>Вход</h2>
-                <button id="google-signin" class="btn google-btn">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" alt="Google">
-                    Войти через Google
-                </button>
-                <div class="divider">или</div>
-                <form id="email-signin">
-                    <input type="email" id="email" placeholder="Email" required>
-                    <input type="password" id="password" placeholder="Пароль" required>
-                    <button type="submit" class="btn">Войти</button>
-                </form>
-                <p>Нет аккаунта? <a href="#" id="show-signup">Зарегистрироваться</a></p>
-            </div>
-            
-            <div id="signup-form" class="auth-form hidden">
-                <h2>Регистрация</h2>
-                <form id="email-signup">
-                    <input type="text" id="name" placeholder="Имя" required>
-                    <input type="email" id="new-email" placeholder="Email" required>
-                    <input type="password" id="new-password" placeholder="Пароль" required>
-                    <button type="submit" class="btn">Зарегистрироваться</button>
-                </form>
-                <p>Уже есть аккаунт? <a href="#" id="show-signin">Войти</a></p>
-            </div>
-        </div>
-        
-        <div id="user-profile" class="hidden">
-            <h2>Добро пожаловать, <span id="user-name"></span>!</h2>
-            <p>Email: <span id="user-email"></span></p>
-            <button id="signout-btn" class="btn">Выйти</button>
-        </div>
-    </div>
+    <h1>Содержимое файла txt.txt</h1>
+    <div id="content">Загрузка...</div>
+    <div id="last-update"></div>
 
-    <script src="script.js"></script>
+    <script>
+        async function loadTextFile() {
+            try {
+                const response = await fetch('txt.txt');
+                if (!response.ok) {
+                    throw new Error('Файл не найден');
+                }
+                const text = await response.text();
+                document.getElementById('content').textContent = text;
+                
+                // Получаем время последнего изменения файла
+                const lastModified = new Date(response.headers.get('Last-Modified') || Date.now());
+                document.getElementById('last-update').textContent = 
+                    `Последнее обновление: ${lastModified.toLocaleString()}`;
+            } catch (error) {
+                document.getElementById('content').textContent = `Ошибка: ${error.message}`;
+            }
+        }
+
+        // Загружаем файл при открытии страницы
+        loadTextFile();
+    </script>
 </body>
 </html>
