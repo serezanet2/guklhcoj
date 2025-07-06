@@ -186,20 +186,26 @@
             padding-top: 10px;
             font-weight: 500;
         }
+        .media-container {
+            width: 100%;
+            max-width: 640px;
+            margin: 15px auto;
+            position: relative;
+        }
         .content-image {
-            max-width: 100%;
+            width: 100%;
             height: auto;
-            margin: 10px 0;
             border-radius: 8px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            display: block;
         }
         .youtube-embed {
             position: relative;
             padding-bottom: 56.25%;
             height: 0;
             overflow: hidden;
-            margin: 15px 0;
             border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         }
         .youtube-embed iframe {
             position: absolute;
@@ -208,6 +214,9 @@
             width: 100%;
             height: 100%;
             border: none;
+        }
+        .text-block {
+            margin-bottom: 15px;
         }
     </style>
 </head>
@@ -242,17 +251,76 @@
         let keyMenuVisible = false;
 
         function parseContent(text) {
+            // Разделяем текст на части перед медиа и после
+            const parts = [];
+            let lastIndex = 0;
+            
             // Обработка YouTube ссылок
-            text = text.replace(/(https?:\/\/(?:www\.)?youtu(?:be\.com\/watch\?v=|\.be\/)([\w-]+)(?:\S+)?)/g, 
-                '<div class="youtube-embed"><iframe src="https://www.youtube.com/embed/$2" allowfullscreen></iframe></div>');
+            const youtubeRegex = /(https?:\/\/(?:www\.)?youtu(?:be\.com\/watch\?v=|\.be\/)([\w-]+)(?:\S+)?)/g;
+            let youtubeMatch;
+            while ((youtubeMatch = youtubeRegex.exec(text)) !== null) {
+                const beforeText = text.substring(lastIndex, youtubeMatch.index);
+                if (beforeText) parts.push({type: 'text', content: beforeText});
+                
+                parts.push({
+                    type: 'youtube',
+                    id: youtubeMatch[2],
+                    url: youtubeMatch[0]
+                });
+                
+                lastIndex = youtubeRegex.lastIndex;
+            }
             
             // Обработка изображений (icon1-icon10)
-            text = text.replace(/icon([1-9]|10)/g, function(match) {
-                const num = match.replace('icon', '');
-                return `<img src="icon${num}.png" class="content-image" alt="Изображение ${num}">`;
+            const imageRegex = /icon([1-9]|10)/g;
+            let imageMatch;
+            while ((imageMatch = imageRegex.exec(text)) !== null) {
+                const beforeText = text.substring(lastIndex, imageMatch.index);
+                if (beforeText) parts.push({type: 'text', content: beforeText});
+                
+                const num = imageMatch[0].replace('icon', '');
+                parts.push({
+                    type: 'image',
+                    num: num,
+                    filename: `icon${num}.png`
+                });
+                
+                lastIndex = imageRegex.lastIndex;
+            }
+            
+            // Добавляем оставшийся текст
+            const remainingText = text.substring(lastIndex);
+            if (remainingText) parts.push({type: 'text', content: remainingText});
+            
+            return parts;
+        }
+
+        function renderContent(parts) {
+            let html = '';
+            
+            parts.forEach(part => {
+                if (part.type === 'text') {
+                    html += `<div class="text-block">${part.content}</div>`;
+                } 
+                else if (part.type === 'image') {
+                    html += `
+                        <div class="media-container">
+                            <img src="${part.filename}" class="content-image" alt="Изображение ${part.num}">
+                        </div>
+                    `;
+                }
+                else if (part.type === 'youtube') {
+                    html += `
+                        <div class="media-container">
+                            <div class="youtube-embed">
+                                <iframe src="https://www.youtube.com/embed/${part.id}" allowfullscreen></iframe>
+                            </div>
+                        </div>
+                    `;
+                }
             });
             
-            return text;
+            return html;
         }
 
         function loadTextFile() {
@@ -263,11 +331,12 @@
                     return response.text().then(text => {
                         const options = { year: 'numeric', month: 'long', day: 'numeric' };
                         const formattedDate = lastModified.toLocaleDateString('ru-RU', options);
-                        const parsedContent = parseContent(text);
+                        const contentParts = parseContent(text);
+                        const contentHtml = renderContent(contentParts);
                         
                         document.getElementById('contentDisplay').innerHTML = `
                             <div class="last-update">Последнее обновление: ${formattedDate}</div>
-                            <div class="file-content">${parsedContent}</div>
+                            <div class="file-content">${contentHtml}</div>
                         `;
                     });
                 })
