@@ -181,23 +181,19 @@
             padding: 5px 0;
             display: block;
         }
-        .file-content {
-            clear: both;
-            padding-top: 10px;
-            font-weight: 500;
+        .content-block {
+            margin-bottom: 20px;
         }
         .media-container {
             width: 100%;
             max-width: 640px;
-            margin: 15px auto;
-            position: relative;
+            margin: 15px 0;
         }
         .content-image {
             width: 100%;
             height: auto;
             border-radius: 8px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            display: block;
         }
         .youtube-embed {
             position: relative;
@@ -214,15 +210,6 @@
             width: 100%;
             height: 100%;
             border: none;
-        }
-        .text-block {
-            margin-bottom: 15px;
-        }
-        .media-caption {
-            text-align: center;
-            font-style: italic;
-            margin-top: 5px;
-            color: #aaa;
         }
     </style>
 </head>
@@ -247,7 +234,7 @@
         <h1 class="app-title">GitUnlock</h1>
         
         <div class="initial-content" id="contentDisplay">
-            <!-- Сюда будет загружаться содержимое файла -->
+            <!-- Контент будет загружен здесь -->
         </div>
     </div>
 
@@ -256,32 +243,33 @@
         let deferredPrompt;
         let keyMenuVisible = false;
 
-        function parseContent(text) {
+        function processContent(text) {
             const parts = [];
             let remainingText = text;
             
-            // Обрабатываем медиа-контент по порядку
+            // Обрабатываем медиа-вставки по порядку
             while (true) {
-                // Ищем первое вхождение любого медиа
-                const imageIndex = remainingText.search(/icon([1-9]|10)/);
-                const youtubeIndex = remainingText.search(/https?:\/\/(?:www\.)?youtu(?:be\.com\/watch\?v=|\.be\/)([\w-]+)/);
+                const imageMatch = remainingText.match(/icon([1-9]|10)/);
+                const youtubeMatch = remainingText.match(/(https?:\/\/(?:www\.)?youtu(?:be\.com\/watch\?v=|\.be\/)([\w-]+))/);
                 
-                // Определяем какой медиа-контент встречается раньше
-                let nextMediaType = null;
-                let nextMediaIndex = Infinity;
-                
-                if (imageIndex >= 0 && imageIndex < nextMediaIndex) {
-                    nextMediaType = 'image';
-                    nextMediaIndex = imageIndex;
+                // Определяем какое медиа встречается раньше
+                let nextMedia = null;
+                if (imageMatch && (!youtubeMatch || imageMatch.index < youtubeMatch.index)) {
+                    nextMedia = {
+                        type: 'image',
+                        match: imageMatch,
+                        length: imageMatch[0].length
+                    };
+                } else if (youtubeMatch) {
+                    nextMedia = {
+                        type: 'youtube',
+                        match: youtubeMatch,
+                        length: youtubeMatch[0].length
+                    };
                 }
                 
-                if (youtubeIndex >= 0 && youtubeIndex < nextMediaIndex) {
-                    nextMediaType = 'youtube';
-                    nextMediaIndex = youtubeIndex;
-                }
-                
-                // Если медиа не найдено - добавляем оставшийся текст и выходим
-                if (nextMediaType === null) {
+                // Если медиа не найдено - добавляем оставшийся текст
+                if (!nextMedia) {
                     if (remainingText.trim().length > 0) {
                         parts.push({
                             type: 'text',
@@ -292,34 +280,28 @@
                 }
                 
                 // Добавляем текст перед медиа
-                if (nextMediaIndex > 0) {
-                    const beforeText = remainingText.substring(0, nextMediaIndex);
+                if (nextMedia.match.index > 0) {
                     parts.push({
                         type: 'text',
-                        content: beforeText
+                        content: remainingText.substring(0, nextMedia.match.index)
                     });
                 }
                 
-                // Обрабатываем медиа-контент
-                if (nextMediaType === 'image') {
-                    const match = remainingText.match(/icon([1-9]|10)/);
-                    const num = match[0].replace('icon', '');
+                // Добавляем медиа
+                if (nextMedia.type === 'image') {
+                    const num = nextMedia.match[0].replace('icon', '');
                     parts.push({
                         type: 'image',
-                        num: num,
                         filename: `icon${num}.png`
                     });
-                    remainingText = remainingText.substring(match.index + match[0].length);
-                } 
-                else if (nextMediaType === 'youtube') {
-                    const match = remainingText.match(/(https?:\/\/(?:www\.)?youtu(?:be\.com\/watch\?v=|\.be\/)([\w-]+)/);
+                } else {
                     parts.push({
                         type: 'youtube',
-                        id: match[2],
-                        url: match[0]
+                        id: nextMedia.match[2]
                     });
-                    remainingText = remainingText.substring(match.index + match[0].length);
                 }
+                
+                remainingText = remainingText.substring(nextMedia.match.index + nextMedia.length);
             }
             
             return parts;
@@ -331,14 +313,13 @@
             parts.forEach(part => {
                 if (part.type === 'text') {
                     if (part.content.trim().length > 0) {
-                        html += `<div class="text-block">${part.content}</div>`;
+                        html += `<div class="content-block">${part.content}</div>`;
                     }
                 } 
                 else if (part.type === 'image') {
                     html += `
                         <div class="media-container">
-                            <img src="${part.filename}" class="content-image" alt="Изображение ${part.num}">
-                            <div class="media-caption">Изображение ${part.num}</div>
+                            <img src="${part.filename}" class="content-image">
                         </div>
                     `;
                 }
@@ -348,7 +329,6 @@
                             <div class="youtube-embed">
                                 <iframe src="https://www.youtube.com/embed/${part.id}" allowfullscreen></iframe>
                             </div>
-                            <div class="media-caption">YouTube видео</div>
                         </div>
                     `;
                 }
@@ -365,12 +345,12 @@
                     return response.text().then(text => {
                         const options = { year: 'numeric', month: 'long', day: 'numeric' };
                         const formattedDate = lastModified.toLocaleDateString('ru-RU', options);
-                        const contentParts = parseContent(text);
+                        const contentParts = processContent(text);
                         const contentHtml = renderContent(contentParts);
                         
                         document.getElementById('contentDisplay').innerHTML = `
                             <div class="last-update">Последнее обновление: ${formattedDate}</div>
-                            <div class="file-content">${contentHtml}</div>
+                            ${contentHtml}
                         `;
                     });
                 })
@@ -378,12 +358,12 @@
                     console.error('Ошибка:', error);
                     document.getElementById('contentDisplay').innerHTML = `
                         <div class="last-update" style="color:red">Файл не загружен</div>
-                        <div class="file-content">${error.message}</div>
+                        <div class="content-block">${error.message}</div>
                     `;
                 });
         }
 
-        // Остальной код остается без изменений
+        // Остальной код без изменений
         window.addEventListener('DOMContentLoaded', loadTextFile);
         document.getElementById('getKeyBtn').addEventListener('click', function(e) {
             e.stopPropagation();
