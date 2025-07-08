@@ -214,24 +214,25 @@
         }
         
         .content-image {
-            max-width: 100%;
-            max-height: 70vh;
+            max-width: 140%; /* Увеличение на 20% с каждой стороны */
+            max-height: 84vh; /* Сохранение пропорций */
             height: auto;
             width: auto;
             border-radius: 8px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
             object-fit: contain;
+            margin: 0 -20%; /* Компенсация увеличения */
         }
         
         .youtube-embed {
             position: relative;
-            width: 100%;
-            padding-bottom: 56.25%;
+            width: 140%; /* Увеличение на 20% с каждой стороны */
+            padding-bottom: 79%; /* 56.25% * 1.4 */
             height: 0;
             overflow: hidden;
             border-radius: 8px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            margin: 20px 0;
+            margin: 20px -20%; /* Компенсация увеличения */
         }
         
         .youtube-embed iframe {
@@ -320,10 +321,7 @@
                     const num = nextMedia.match[0].replace('icon', '');
                     html += `
                         <div class="media-container">
-                            <img src="icon${num}.png" class="content-image" 
-                                 onload="this.style.maxHeight='none'; this.style.maxWidth='none'; 
-                                         this.style.height='auto'; this.style.width='auto'; 
-                                         this.style.maxHeight='70vh'; this.style.maxWidth='100%'">
+                            <img src="icon${num}.png" class="content-image">
                         </div>
                     `;
                 } else {
