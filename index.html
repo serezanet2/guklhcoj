@@ -182,14 +182,17 @@
             display: block;
         }
         .content-image {
+            width: 100%;
             max-width: 100%;
             height: auto;
             margin: 15px 0;
             border-radius: 8px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            display: block;
         }
         .youtube-embed {
             position: relative;
+            width: 100%;
             padding-bottom: 56.25%;
             height: 0;
             overflow: hidden;
@@ -204,6 +207,9 @@
             width: 100%;
             height: 100%;
             border: none;
+        }
+        .text-content {
+            margin: 15px 0;
         }
     </style>
 </head>
@@ -228,7 +234,7 @@
         <h1 class="app-title">GitUnlock</h1>
         
         <div class="initial-content" id="contentDisplay">
-            <!-- Содержимое будет загружено здесь -->
+            <!-- Контент будет загружен здесь -->
         </div>
     </div>
 
@@ -265,7 +271,7 @@
                 // Если медиа не найдено - добавляем оставшийся текст
                 if (!nextMedia) {
                     if (remainingText.trim().length > 0) {
-                        html += `<div>${remainingText}</div>`;
+                        html += `<div class="text-content">${remainingText}</div>`;
                     }
                     break;
                 }
@@ -274,7 +280,7 @@
                 if (nextMedia.match.index > 0) {
                     const textBefore = remainingText.substring(0, nextMedia.match.index).trim();
                     if (textBefore) {
-                        html += `<div>${textBefore}</div>`;
+                        html += `<div class="text-content">${textBefore}</div>`;
                     }
                 }
                 
@@ -317,7 +323,7 @@
                     console.error('Ошибка:', error);
                     document.getElementById('contentDisplay').innerHTML = `
                         <div class="last-update" style="color:red">Файл не загружен</div>
-                        <div>${error.message}</div>
+                        <div class="text-content">${error.message}</div>
                     `;
                 });
         }
