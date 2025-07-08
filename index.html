@@ -214,25 +214,24 @@
         }
         
         .content-image {
-            max-width: 140%; /* Увеличение на 20% с каждой стороны */
-            max-height: 84vh; /* Сохранение пропорций */
+            max-width: 100%;
+            max-height: 70vh;
             height: auto;
             width: auto;
             border-radius: 8px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
             object-fit: contain;
-            margin: 0 -20%; /* Компенсация увеличения */
         }
         
         .youtube-embed {
             position: relative;
-            width: 140%; /* Увеличение на 20% с каждой стороны */
-            padding-bottom: 79%; /* 56.25% * 1.4 */
+            width: 100%;
+            padding-bottom: 56.25%;
             height: 0;
             overflow: hidden;
             border-radius: 8px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            margin: 20px -20%; /* Компенсация увеличения */
+            margin: 20px 0;
         }
         
         .youtube-embed iframe {
@@ -274,6 +273,35 @@
         let notificationId = 0;
         let deferredPrompt;
         let keyMenuVisible = false;
+
+        function adjustImageSize(img) {
+            const containerWidth = document.querySelector('.menu-container').clientWidth - 60; // учитываем padding
+            const maxHeight = window.innerHeight * 0.7;
+            
+            // Если изображение слишком маленькое
+            if (img.naturalWidth < containerWidth * 0.8 || img.naturalHeight < maxHeight * 0.8) {
+                const scaleFactor = Math.min(
+                    (containerWidth * 0.9) / img.naturalWidth,
+                    (maxHeight * 0.9) / img.naturalHeight
+                );
+                img.style.width = (img.naturalWidth * scaleFactor) + 'px';
+                img.style.height = 'auto';
+            }
+            // Если изображение слишком большое
+            else if (img.naturalWidth > containerWidth || img.naturalHeight > maxHeight) {
+                const scaleFactor = Math.min(
+                    containerWidth / img.naturalWidth,
+                    maxHeight / img.naturalHeight
+                );
+                img.style.width = (img.naturalWidth * scaleFactor) + 'px';
+                img.style.height = 'auto';
+            }
+            // Если размер подходящий - оставляем как есть
+            else {
+                img.style.width = img.naturalWidth + 'px';
+                img.style.height = img.naturalHeight + 'px';
+            }
+        }
 
         function processContent(text) {
             let html = '';
@@ -321,7 +349,7 @@
                     const num = nextMedia.match[0].replace('icon', '');
                     html += `
                         <div class="media-container">
-                            <img src="icon${num}.png" class="content-image">
+                            <img src="icon${num}.png" class="content-image" onload="adjustImageSize(this)">
                         </div>
                     `;
                 } else {
