@@ -271,6 +271,13 @@
             height: auto;
             border-radius: 5px;
             object-fit: cover;
+            max-width: 50%; /* Уменьшаем в 2 раза */
+            max-height: 50%; /* Уменьшаем в 2 раза */
+        }
+        
+        .single-image {
+            max-width: 100%;
+            max-height: 70vh;
         }
     </style>
 </head>
@@ -304,32 +311,38 @@
         let deferredPrompt;
         let keyMenuVisible = false;
 
-        function adjustImageSize(img) {
-            const containerWidth = document.querySelector('.menu-container').clientWidth - 60; // учитываем padding
+        function adjustImageSize(img, isGrouped = false) {
+            const containerWidth = document.querySelector('.menu-container').clientWidth - 60;
             const maxHeight = window.innerHeight * 0.7;
             
-            // Если изображение слишком маленькое
-            if (img.naturalWidth < containerWidth * 0.8 || img.naturalHeight < maxHeight * 0.8) {
-                const scaleFactor = Math.min(
-                    (containerWidth * 0.9) / img.naturalWidth,
-                    (maxHeight * 0.9) / img.naturalHeight
-                );
+            if (isGrouped) {
+                // Для групповых изображений устанавливаем размер в 2 раза меньше
+                const targetWidth = containerWidth / 2 - 10; // минус отступы
+                const scaleFactor = targetWidth / img.naturalWidth;
                 img.style.width = (img.naturalWidth * scaleFactor) + 'px';
-                img.style.height = 'auto';
-            }
-            // Если изображение слишком большое
-            else if (img.naturalWidth > containerWidth || img.naturalHeight > maxHeight) {
-                const scaleFactor = Math.min(
-                    containerWidth / img.naturalWidth,
-                    maxHeight / img.naturalHeight
-                );
-                img.style.width = (img.naturalWidth * scaleFactor) + 'px';
-                img.style.height = 'auto';
-            }
-            // Если размер подходящий - оставляем как есть
-            else {
-                img.style.width = img.naturalWidth + 'px';
-                img.style.height = img.naturalHeight + 'px';
+                img.style.height = (img.naturalHeight * scaleFactor) + 'px';
+            } else {
+                // Для одиночных изображений обычная логика
+                if (img.naturalWidth < containerWidth * 0.8 || img.naturalHeight < maxHeight * 0.8) {
+                    const scaleFactor = Math.min(
+                        (containerWidth * 0.9) / img.naturalWidth,
+                        (maxHeight * 0.9) / img.naturalHeight
+                    );
+                    img.style.width = (img.naturalWidth * scaleFactor) + 'px';
+                    img.style.height = 'auto';
+                }
+                else if (img.naturalWidth > containerWidth || img.naturalHeight > maxHeight) {
+                    const scaleFactor = Math.min(
+                        containerWidth / img.naturalWidth,
+                        maxHeight / img.naturalHeight
+                    );
+                    img.style.width = (img.naturalWidth * scaleFactor) + 'px';
+                    img.style.height = 'auto';
+                }
+                else {
+                    img.style.width = img.naturalWidth + 'px';
+                    img.style.height = img.naturalHeight + 'px';
+                }
             }
         }
 
@@ -338,12 +351,10 @@
             let remainingText = text;
             let imageSequence = [];
             
-            // Обрабатываем медиа-вставки
             while (true) {
                 const imageMatch = remainingText.match(/icon([1-9]|10)/);
                 const youtubeMatch = remainingText.match(/(https?:\/\/(?:www\.)?youtu(?:be\.com\/watch\?v=|\.be\/)([\w-]+)(\S*))/);
                 
-                // Определяем какое медиа встречается раньше
                 let nextMedia = null;
                 if (imageMatch && (!youtubeMatch || imageMatch.index < youtubeMatch.index)) {
                     nextMedia = {
@@ -359,9 +370,7 @@
                     };
                 }
                 
-                // Если медиа не найдено - добавляем оставшийся текст
                 if (!nextMedia) {
-                    // Если есть накопленные изображения в последовательности
                     if (imageSequence.length > 0) {
                         html += createImageGroup(imageSequence);
                         imageSequence = [];
@@ -373,11 +382,9 @@
                     break;
                 }
                 
-                // Добавляем текст перед медиа, если есть накопленные изображения
                 if (nextMedia.match.index > 0) {
                     const textBefore = remainingText.substring(0, nextMedia.match.index).trim();
                     if (textBefore) {
-                        // Если есть накопленные изображения в последовательности
                         if (imageSequence.length > 0) {
                             html += createImageGroup(imageSequence);
                             imageSequence = [];
@@ -386,12 +393,10 @@
                     }
                 }
                 
-                // Обрабатываем медиа
                 if (nextMedia.type === 'image') {
                     const num = nextMedia.match[0].replace('icon', '');
                     imageSequence.push(num);
                 } else {
-                    // Если есть накопленные изображения в последовательности перед YouTube
                     if (imageSequence.length > 0) {
                         html += createImageGroup(imageSequence);
                         imageSequence = [];
@@ -415,38 +420,34 @@
             const count = sequence.length;
             let html = '';
             
-            // Если 1 изображение - обычный вывод
             if (count === 1) {
                 html = `
                     <div class="media-container">
-                        <img src="icon${sequence[0]}.png" class="content-image" onload="adjustImageSize(this)">
+                        <img src="icon${sequence[0]}.png" class="content-image single-image" onload="adjustImageSize(this, false)">
                     </div>
                 `;
             } 
-            // Если 2 изображения - в ряд
             else if (count === 2) {
                 html = `
                     <div class="image-group image-group-2">
-                        <img src="icon${sequence[0]}.png" class="grouped-image" onload="adjustImageSize(this)">
-                        <img src="icon${sequence[1]}.png" class="grouped-image" onload="adjustImageSize(this)">
+                        <img src="icon${sequence[0]}.png" class="grouped-image" onload="adjustImageSize(this, true)">
+                        <img src="icon${sequence[1]}.png" class="grouped-image" onload="adjustImageSize(this, true)">
                     </div>
                 `;
             }
-            // Если 3 или 4 изображения - в виде сетки 2x2
             else if (count === 3 || count === 4) {
                 html = `<div class="image-group image-group-4">`;
                 for (let i = 0; i < Math.min(count, 4); i++) {
-                    html += `<img src="icon${sequence[i]}.png" class="grouped-image" onload="adjustImageSize(this)">`;
+                    html += `<img src="icon${sequence[i]}.png" class="grouped-image" onload="adjustImageSize(this, true)">`;
                 }
                 html += `</div>`;
             }
-            // Если больше 4 изображений - группируем по 4
             else {
                 for (let i = 0; i < sequence.length; i += 4) {
                     const chunk = sequence.slice(i, i + 4);
                     html += `<div class="image-group image-group-4">`;
                     for (const num of chunk) {
-                        html += `<img src="icon${num}.png" class="grouped-image" onload="adjustImageSize(this)">`;
+                        html += `<img src="icon${num}.png" class="grouped-image" onload="adjustImageSize(this, true)">`;
                     }
                     html += `</div>`;
                 }
@@ -558,7 +559,6 @@
             });
         }
 
-        // Загружаем контент при загрузке страницы
         window.addEventListener('DOMContentLoaded', loadTextFile);
     </script>
 </body>
