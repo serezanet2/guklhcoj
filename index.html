@@ -211,6 +211,8 @@
             display: flex;
             justify-content: center;
             margin: 20px 0;
+            flex-wrap: wrap;
+            gap: 5px;
         }
         
         .content-image {
@@ -241,6 +243,34 @@
             width: 100%;
             height: 100%;
             border: none;
+        }
+        
+        /* Стили для группировки изображений */
+        .image-group {
+            display: grid;
+            gap: 5px;
+            margin: 10px 0;
+            width: 100%;
+        }
+        
+        .image-group-1 {
+            grid-template-columns: 1fr;
+        }
+        
+        .image-group-2 {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .image-group-4 {
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+        }
+        
+        .grouped-image {
+            width: 100%;
+            height: auto;
+            border-radius: 5px;
+            object-fit: cover;
         }
     </style>
 </head>
@@ -306,6 +336,7 @@
         function processContent(text) {
             let html = '';
             let remainingText = text;
+            let imageSequence = [];
             
             // Обрабатываем медиа-вставки
             while (true) {
@@ -330,29 +361,42 @@
                 
                 // Если медиа не найдено - добавляем оставшийся текст
                 if (!nextMedia) {
+                    // Если есть накопленные изображения в последовательности
+                    if (imageSequence.length > 0) {
+                        html += createImageGroup(imageSequence);
+                        imageSequence = [];
+                    }
+                    
                     if (remainingText.trim().length > 0) {
                         html += `<div class="text-content">${remainingText}</div>`;
                     }
                     break;
                 }
                 
-                // Добавляем текст перед медиа
+                // Добавляем текст перед медиа, если есть накопленные изображения
                 if (nextMedia.match.index > 0) {
                     const textBefore = remainingText.substring(0, nextMedia.match.index).trim();
                     if (textBefore) {
+                        // Если есть накопленные изображения в последовательности
+                        if (imageSequence.length > 0) {
+                            html += createImageGroup(imageSequence);
+                            imageSequence = [];
+                        }
                         html += `<div class="text-content">${textBefore}</div>`;
                     }
                 }
                 
-                // Добавляем медиа
+                // Обрабатываем медиа
                 if (nextMedia.type === 'image') {
                     const num = nextMedia.match[0].replace('icon', '');
-                    html += `
-                        <div class="media-container">
-                            <img src="icon${num}.png" class="content-image" onload="adjustImageSize(this)">
-                        </div>
-                    `;
+                    imageSequence.push(num);
                 } else {
+                    // Если есть накопленные изображения в последовательности перед YouTube
+                    if (imageSequence.length > 0) {
+                        html += createImageGroup(imageSequence);
+                        imageSequence = [];
+                    }
+                    
                     const videoId = nextMedia.match[2];
                     html += `
                         <div class="youtube-embed">
@@ -362,6 +406,50 @@
                 }
                 
                 remainingText = remainingText.substring(nextMedia.match.index + nextMedia.length);
+            }
+            
+            return html;
+        }
+
+        function createImageGroup(sequence) {
+            const count = sequence.length;
+            let html = '';
+            
+            // Если 1 изображение - обычный вывод
+            if (count === 1) {
+                html = `
+                    <div class="media-container">
+                        <img src="icon${sequence[0]}.png" class="content-image" onload="adjustImageSize(this)">
+                    </div>
+                `;
+            } 
+            // Если 2 изображения - в ряд
+            else if (count === 2) {
+                html = `
+                    <div class="image-group image-group-2">
+                        <img src="icon${sequence[0]}.png" class="grouped-image" onload="adjustImageSize(this)">
+                        <img src="icon${sequence[1]}.png" class="grouped-image" onload="adjustImageSize(this)">
+                    </div>
+                `;
+            }
+            // Если 3 или 4 изображения - в виде сетки 2x2
+            else if (count === 3 || count === 4) {
+                html = `<div class="image-group image-group-4">`;
+                for (let i = 0; i < Math.min(count, 4); i++) {
+                    html += `<img src="icon${sequence[i]}.png" class="grouped-image" onload="adjustImageSize(this)">`;
+                }
+                html += `</div>`;
+            }
+            // Если больше 4 изображений - группируем по 4
+            else {
+                for (let i = 0; i < sequence.length; i += 4) {
+                    const chunk = sequence.slice(i, i + 4);
+                    html += `<div class="image-group image-group-4">`;
+                    for (const num of chunk) {
+                        html += `<img src="icon${num}.png" class="grouped-image" onload="adjustImageSize(this)">`;
+                    }
+                    html += `</div>`;
+                }
             }
             
             return html;
