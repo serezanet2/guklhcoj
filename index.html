@@ -211,8 +211,6 @@
             display: flex;
             justify-content: center;
             margin: 20px 0;
-            flex-wrap: wrap;
-            gap: 5px;
         }
         
         .content-image {
@@ -253,10 +251,6 @@
             width: 100%;
         }
         
-        .image-group-1 {
-            grid-template-columns: 1fr;
-        }
-        
         .image-group-2 {
             grid-template-columns: repeat(2, 1fr);
         }
@@ -271,13 +265,6 @@
             height: auto;
             border-radius: 5px;
             object-fit: cover;
-            max-width: 50%; /* Уменьшаем в 2 раза */
-            max-height: 50%; /* Уменьшаем в 2 раза */
-        }
-        
-        .single-image {
-            max-width: 100%;
-            max-height: 70vh;
         }
     </style>
 </head>
@@ -316,8 +303,8 @@
             const maxHeight = window.innerHeight * 0.7;
             
             if (isGrouped) {
-                // Для групповых изображений устанавливаем размер в 2 раза меньше
-                const targetWidth = containerWidth / 2 - 10; // минус отступы
+                // Для групповых изображений уменьшаем размер в 2 раза
+                const targetWidth = containerWidth / 2 - 10;
                 const scaleFactor = targetWidth / img.naturalWidth;
                 img.style.width = (img.naturalWidth * scaleFactor) + 'px';
                 img.style.height = (img.naturalHeight * scaleFactor) + 'px';
@@ -423,7 +410,7 @@
             if (count === 1) {
                 html = `
                     <div class="media-container">
-                        <img src="icon${sequence[0]}.png" class="content-image single-image" onload="adjustImageSize(this, false)">
+                        <img src="icon${sequence[0]}.png" class="content-image" onload="adjustImageSize(this, false)">
                     </div>
                 `;
             } 
